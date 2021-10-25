@@ -1,16 +1,4 @@
-# Frontend Code Test
-
-Hey :wave:, thanks for taking the time to do our technical test!
-
-## Task
-
-Your goal is to build a product called Application Form. This product will dynamically generate a form based on data received from an API using React.
-
-There are three banks requesting an Application Form:
-
-- Bank of Azeroth
-- Naboo Bank
-- Middle Earth Bank
+# Next app demo
 
 ## Pre-requisites
 
