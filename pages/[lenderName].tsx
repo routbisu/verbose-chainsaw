@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Button, TextField, Typography } from '@material-ui/core';
+import { Button, Typography } from '@material-ui/core';
 import { NextPage } from 'next';
 import BreadCrumbs from 'components/BreadCrumbs';
-import { deSnake } from 'lib/types/utils';
+import LenderFormControl from 'components/LenderFormControl';
+import {
+  fetchLenderFormDetails,
+  submitLenderDetails,
+} from 'services/lendingService';
 
 const styles = {
   container: {
@@ -11,8 +15,21 @@ const styles = {
     maxWidth: 500,
   },
   formControl: {
-    margin: `15px 0px`,
+    margin: `15px 0`,
   },
+  card: {
+    margin: `20px 0`,
+    height: 200,
+    color: 'white',
+    borderRadius: 4,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  accepted: {
+    background: 'green',
+  },
+  declined: { background: 'orange' },
 };
 
 const LenderNamePage: NextPage = () => {
@@ -20,22 +37,46 @@ const LenderNamePage: NextPage = () => {
   const lenderSlug = router.query.lenderName?.toString();
   const [bankName, setBankName] = useState('');
   const [formFields, setFormFields] = useState([]);
+  const [formData, setFormData] = useState({});
+  const [decision, setDecision] = useState<'accepted' | 'declined'>();
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
-    if (lenderSlug) {
-      fetch(`/api/lenders/${lenderSlug}`)
-        .then((res) => res.json())
-        .then((formDetails) => {
-          console.log('formDetails', formDetails);
-
-          if (formDetails) {
-            const { name, fields } = formDetails;
-            setBankName(name);
-            setFormFields(fields);
-          }
-        });
-    }
+    (async () => {
+      if (lenderSlug) {
+        try {
+          const { name, fields } = await fetchLenderFormDetails(lenderSlug);
+          setBankName(name);
+          setFormFields(fields);
+        } catch (error) {
+          console.log('There was an unexpected error', error);
+        }
+      }
+    })();
   }, [lenderSlug]);
+
+  const submitHandler = async (evt: any) => {
+    evt.preventDefault();
+
+    // Resets the form to try again for a new decision
+    if (decision) {
+      setDecision(undefined);
+    } else {
+      setIsSubmitting(true);
+      try {
+        const result = await submitLenderDetails(lenderSlug, formData);
+        setDecision(result.decision);
+        setFormData({});
+      } catch (error) {
+        console.log('There was an unexpected error', error);
+      }
+      setIsSubmitting(false);
+    }
+  };
+
+  const changeHandler = (evt: any, fieldName: string) => {
+    setFormData((curr) => ({ ...curr, [fieldName]: evt.target.value }));
+  };
 
   return (
     <div style={styles.container}>
@@ -49,15 +90,45 @@ const LenderNamePage: NextPage = () => {
         account.
       </Typography>
 
+      {decision && (
+        <div style={{ ...styles.card, ...styles[decision] }}>
+          <Typography variant="h4">
+            You've been {decision} {decision === 'accepted' ? '🤗' : '😥'}
+          </Typography>
+        </div>
+      )}
+
       {formFields?.length > 0 && (
-        <form>
-          {formFields.map((field) => (
-            <div style={styles.formControl} key={field}>
-              <TextField label={deSnake(field)} fullWidth />
-            </div>
-          ))}
-          <Button variant="outlined" size="large" color="primary" fullWidth>
-            Check eligibility
+        <form onSubmit={submitHandler}>
+          {!decision &&
+            formFields.map((field) => {
+              let fieldDetails =
+                typeof field === 'string' ? { name: field } : field;
+
+              const { name: fieldName } = fieldDetails;
+
+              return (
+                <div style={styles.formControl} key={fieldName}>
+                  <LenderFormControl
+                    {...fieldDetails}
+                    value={formData[fieldName] || ''}
+                    onChange={(evt) => changeHandler(evt, fieldName)}
+                  />
+                </div>
+              );
+            })}
+          <Button
+            variant="outlined"
+            size="large"
+            color="primary"
+            type="submit"
+            fullWidth
+          >
+            {decision
+              ? 'Try Again'
+              : isSubmitting
+              ? 'Checking...'
+              : 'Check eligibility'}
           </Button>
         </form>
       )}
