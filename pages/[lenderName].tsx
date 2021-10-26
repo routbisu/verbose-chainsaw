@@ -92,7 +92,7 @@ const LenderNamePage: NextPage = () => {
 
       {decision && (
         <div style={{ ...styles.card, ...styles[decision] }}>
-          <Typography variant="h4">
+          <Typography variant="h4" data-testid="decision">
             You've been {decision} {decision === 'accepted' ? '🤗' : '😥'}
           </Typography>
         </div>
@@ -113,6 +113,7 @@ const LenderNamePage: NextPage = () => {
                     {...fieldDetails}
                     value={formData[fieldName] || ''}
                     onChange={(evt) => changeHandler(evt, fieldName)}
+                    data-testid={fieldName}
                   />
                 </div>
               );
@@ -123,6 +124,7 @@ const LenderNamePage: NextPage = () => {
             color="primary"
             type="submit"
             fullWidth
+            data-testid="submit"
           >
             {decision
               ? 'Try Again'
